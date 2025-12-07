@@ -1,3 +1,23 @@
+// (c) 2023, Petal
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 import { mkdir, rm, writeFile } from 'fs/promises';
 import * as core from '@actions/core';
 import * as github from '@actions/github';
@@ -14,7 +34,7 @@ const ghToken = core.getInput('github-token');
 const dismissMessage = core.getInput('dismiss-message');
 
 const ghClient = github.getOctokit(ghToken);
-const artiClient = artifact.create();
+const artiClient = new artifact.DefaultArtifactClient();
 const workspace = process.env['GITHUB_WORKSPACE'] ?? process.cwd();
 
 // Returns the name of the artifact used to save diff for this PR.
@@ -146,9 +166,9 @@ async function saveDiffs(pr, previousDiff, currentDiff) {
     ([diffFilePath, diff]) => writeFile(diffFilePath, diff, { encoding: 'utf8' })
   ));
 
-  const { failedItems } = await artiClient.uploadArtifact(diffArtifactName, Object.keys(diffFiles), diffDirPath);
-  if (failedItems.length !== 0) {
-    throw new Error(`Failed to upload current diff artifact - failed items: ${failedItems}`);
+  const uploadResponse = await artiClient.uploadArtifact(diffArtifactName, Object.keys(diffFiles), diffDirPath);
+  if (!uploadResponse.id) {
+    throw new Error(`Failed to upload current diff artifact`);
   }
 }
 
